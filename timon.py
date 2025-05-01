@@ -58,7 +58,8 @@ async def main():
     telegram_app.add_handler(CommandHandler("start", start))
     telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat))
 
-    await telegram_app.start_webhook(
+    # Используем метод run_webhook
+    await telegram_app.run_webhook(
         listen="0.0.0.0",
         port=int(os.environ.get("PORT", 10000)),
         webhook_url=WEBHOOK_URL,
