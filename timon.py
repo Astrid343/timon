@@ -11,11 +11,11 @@ from telegram.ext import (
 )
 
 # Настройки
-BOT_TOKEN = os.getenv("BOT_TOKEN", "твой_токен")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL", "https://твой-домен.onrender.com/webhook")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "7942858083:AAG1E_upeUZayYi33OfA6y9eGSyo3-dwJc4")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL", "https://timon-sgzp.onrender.com/webhook")
 PORT = int(os.environ.get("PORT", 10000))
 
-openai.api_key = os.getenv("OPENAI_API_KEY", "твой_openai_ключ")
+openai.api_key = os.getenv("OPENAI_API_KEY", "sk-ijklmnopqrstuvwxijklmnopqrstuvwxijklmnop")
 
 # Логирование
 logging.basicConfig(
