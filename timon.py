@@ -17,7 +17,7 @@ OPENAI_API_KEY = "sk-ijklmnopqrstuvwxijklmnopqrstuvwxijklmnop"
 WEBHOOK_URL = "https://timon-sgzp.onrender.com/webhook"
 
 openai.api_key = OPENAI_API_KEY
-app = Flask(__name_)
+app = Flask(__name__)
 
 # 🧠 Создание Telegram Application
 telegram_app = Application.builder().token(BOT_TOKEN).build()
