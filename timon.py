@@ -1,60 +1,73 @@
-import os
 import logging
 import openai
+from flask import Flask, request
 from telegram import Update
-from telegram.ext import (
-    Application,
-    CommandHandler,
-    MessageHandler,
-    ContextTypes,
-    filters
-)
+from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
-# Настройки
-BOT_TOKEN = os.getenv("BOT_TOKEN", "7942858083:AAG1E_upeUZayYi33OfA6y9eGSyo3-dwJc4")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL", "https://timon-sgzp.onrender.com/webhook")
-PORT = int(os.environ.get("PORT", 10000))
+# Настроим базовое логирование
+logging.basicConfig(level=logging.INFO)
 
-openai.api_key = os.getenv("OPENAI_API_KEY", "sk-ijklmnopqrstuvwxijklmnopqrstuvwxijklmnop")
+app = Flask(__name__)
 
-# Логирование
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.INFO
-)
-logger = logging.getLogger(__name__)
+# Инициализация приложения telegram
+TOKEN = "7942858083:AAG1E_upeUZayYi33OfA6y9eGSyo3-dwJc4"
+OPENAI_API_KEY = "sk-ijklmnopqrstuvwxijklmnopqrstuvwxijklmnop"  # Здесь указываешь свой ключ OpenAI
 
-# Хэндлер /start
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Привет! Напиши мне что-нибудь.")
+openai.api_key = OPENAI_API_KEY  # Устанавливаем ключ для работы с OpenAI
 
-# Хэндлер для сообщений
-async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_message = update.message.text
+telegram_app = Application.builder().token(TOKEN).build()
+
+# Логируем установку webhook
+@app.before_first_request
+def setup():
+    app.logger.info("Устанавливаю webhook...")
+    telegram_app.bot.set_webhook("https://timon-sgzp.onrender.com/webhook")
+    app.logger.info("Webhook установлен.")
+
+# Обработчик команды /start
+async def start(update: Update, context):
+    await update.message.reply_text("Привет! Я бот.")
+
+# Функция для получения ответа от OpenAI
+async def get_openai_response(user_message: str) -> str:
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": user_message}]
+        response = openai.Completion.create(
+            model="gpt-3.5-turbo",  # Указываешь модель OpenAI
+            prompt=user_message,
+            max_tokens=100  # Можно настроить количество токенов (символов)
         )
-        reply = response.choices[0].message.content
+        return response.choices[0].text.strip()
     except Exception as e:
-        reply = f"Ошибка: {e}"
-        logger.error("OpenAI error: %s", e)
-    await update.message.reply_text(reply)
+        return f"Ошибка при запросе к OpenAI: {e}"
+
+# Обработчик обычных сообщений
+async def chat(update: Update, context):
+    user_message = update.message.text
+
+    # Получаем ответ от OpenAI
+    response = await get_openai_response(user_message)
+    
+    # Отправляем ответ в Telegram
+    await update.message.reply_text(response)
+
+# Добавляем обработчики команд и сообщений
+telegram_app.add_handler(CommandHandler("start", start))
+telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat))
+
+@app.route('/webhook', methods=["POST"])
+def webhook():
+    # Получаем данные из POST-запроса
+    data = request.get_json(force=True)
+
+    # Логируем входящие данные для отладки
+    app.logger.info(f"Incoming webhook data: {data}")
+
+    # Преобразуем данные в объект Update и добавляем в очередь
+    update = Update.de_json(data, telegram_app.bot)
+    telegram_app.update_queue.put(update)
+
+    return "ok", 200
 
 # Основной запуск
-def main():
-    application = Application.builder().token(BOT_TOKEN).build()
-
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat))
-
-    logger.info("Устанавливаю webhook на %s", WEBHOOK_URL)
-    application.run_webhook(
-        listen="0.0.0.0",
-        port=PORT,
-        webhook_url=WEBHOOK_URL
-    )
-
 if __name__ == "__main__":
-    main()
+    app.run(host="0.0.0.0", port=10000)
