@@ -2,8 +2,15 @@ services:
   - type: web
     name: telegram-bot
     env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: python timon.py
-    envVars:
-      - key: PORT
-        value: 10000
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python timon.py"
+    plan: free
+    ports:
+      - 10000
+    environmentVariables:
+      - key: BOT_TOKEN
+        value: "7942858083:AAG1E_upeUZayYi33OfA6y9eGSyo3-dwJc4"
+      - key: OPENAI_API_KEY
+        value: "sk-ijklmnopqrstuvwxijklmnopqrstuvwxijklmnop"
+      - key: WEBHOOK_URL
+        value: "https://timon-sgzp.onrender.com/webhook"
