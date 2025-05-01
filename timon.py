@@ -3,9 +3,11 @@ import logging
 import openai
 from flask import Flask, request
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
+from telegram.ext import (
+    Application, CommandHandler, MessageHandler, ContextTypes, filters
+)
 
-# 🔧 Настройка логирования
+# 🔧 Логирование
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -15,17 +17,17 @@ OPENAI_API_KEY = "sk-ijklmnopqrstuvwxijklmnopqrstuvwxijklmnop"
 WEBHOOK_URL = "https://timon-sgzp.onrender.com/webhook"
 
 openai.api_key = OPENAI_API_KEY
-app = Flask(__name__)
+app = Flask(__name_)
 
-# 🎯 Создаём Telegram Application
+# 🧠 Создание Telegram Application
 telegram_app = Application.builder().token(BOT_TOKEN).build()
 
-# 🧠 Обработчик команды /start
+# 📥 Обработчик /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"/start от {update.effective_user.id}")
     await update.message.reply_text("Привет! Напиши мне что-нибудь.")
 
-# 💬 Обработчик сообщений
+# 💬 Обработчик обычных сообщений
 async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
     logger.info(f"Сообщение от {update.effective_user.id}: {user_message}")
@@ -40,27 +42,32 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply = "Произошла ошибка при обращении к OpenAI."
     await update.message.reply_text(reply)
 
-# 📥 Flask Webhook endpoint
-@app.route('/webhook', methods=["POST"])
-def webhook():
-    logger.info("✅ Получен update от Telegram")
-    update = Update.de_json(request.get_json(force=True), telegram_app.bot)
-    telegram_app.update_queue.put(update)
+# 🔗 Flask route для Telegram Webhook
+@app.route("/webhook", methods=["POST"])
+async def webhook():
+    try:
+        update_data = request.get_json(force=True)
+        update = Update.de_json(update_data, telegram_app.bot)
+        await telegram_app.process_update(update)
+        logger.info("✅ Обновление обработано")
+    except Exception as e:
+        logger.exception("Ошибка обработки webhook")
     return "ok", 200
 
-# ✅ Регистрируем обработчики
+# 📌 Регистрируем обработчики
 telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat))
 
-# 🚀 Запускаем приложение
+# 🚀 Запуск Flask и установка webhook
 if __name__ == "__main__":
-    # Устанавливаем webhook
     import asyncio
-    asyncio.run(telegram_app.bot.set_webhook(WEBHOOK_URL))
-    
-    # Запускаем Flask + Telegram webhook
-    telegram_app.run_webhook(
-        listen="0.0.0.0",
-        port=int(os.environ.get("PORT", 10000)),
-        webhook_url=WEBHOOK_URL
-    )
+
+    async def start():
+        logger.info("Устанавливаю webhook...")
+        await telegram_app.bot.set_webhook(WEBHOOK_URL)
+        logger.info("Webhook установлен.")
+
+    asyncio.run(start())
+
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
