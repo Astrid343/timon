@@ -67,5 +67,8 @@ async def main():
     )
 
 if __name__ == "__main__":
-    # Используем asyncio.run() для запуска асинхронного кода
-    asyncio.run(main())
+    # Используем уже существующий цикл событий, если он есть
+    if not asyncio.get_event_loop().is_running():
+        asyncio.run(main())
+    else:
+        asyncio.ensure_future(main())
