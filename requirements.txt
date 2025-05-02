@@ -1,3 +1,8 @@
-flask
-python-telegram-bot==20.3
-openai
+services:
+  - type: web
+    name: timon-bot
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python timon.py
+    envVars: []
