@@ -1,33 +1,32 @@
-import os
 import logging
 import openai
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
-# API tokens
+# Токены
 TELEGRAM_API_TOKEN = "7942858083:AAG1E_upeUZayYi33OfA6y9eGSyo3-dwJc4"
 OPENAI_API_KEY = "sk-5678ijklmnopabcd5678ijklmnopabcd5678ijkl"
 
-# Flask app setup
+# Инициализация Flask
 app = Flask(__name__)
 
-# Set OpenAI API key
+# Настройка OpenAI API
 openai.api_key = OPENAI_API_KEY
 
-# Set up logging
+# Логирование
 logging.basicConfig(level=logging.INFO)
 
-# Function to handle /start command
+# Обработка команды /start
 async def start(update: Update, context):
-    await update.message.reply_text("Hello! Send me a message and I will reply with GPT-3's response.")
+    await update.message.reply_text("Привет! Напиши мне сообщение, и я отвечу с помощью GPT-3.")
 
-# Function to handle incoming messages
+# Обработка входящих сообщений
 async def handle_message(update: Update, context):
     user_message = update.message.text
 
-    # Call OpenAI API to get a response
     try:
+        # Запрос к OpenAI
         response = openai.Completion.create(
             model="text-davinci-003",
             prompt=user_message,
@@ -35,23 +34,28 @@ async def handle_message(update: Update, context):
         )
         await update.message.reply_text(response.choices[0].text.strip())
     except Exception as e:
-        await update.message.reply_text("Error: Could not process your request.")
-        logging.error(f"Error: {e}")
+        await update.message.reply_text("Ошибка: Не удалось обработать запрос.")
+        logging.error(f"Ошибка: {e}")
 
-# Flask route to handle webhooks
+# Роут для вебхука
 @app.route(f"/webhook/{TELEGRAM_API_TOKEN}", methods=["POST"])
-def telegram_webhook():
+def webhook():
     try:
-        payload = request.get_json()  # Убираем await, так как get_json() синхронный
-        logging.info(f"Received payload: {payload}")
+        # Получаем данные от Telegram
+        payload = request.get_json()
         update = Update.de_json(payload, None)
-        application = Application.builder().token(TELEGRAM_API_TOKEN).build()
-        application.process_update(update)
-        return "", 200
-    except Exception as e:
-        logging.error(f"Error processing webhook: {e}")
-        return "Internal Server Error", 500
 
-# Run Flask app
+        # Создаем приложение Telegram
+        application = Application.builder().token(TELEGRAM_API_TOKEN).build()
+
+        # Обрабатываем обновление
+        application.process_update(update)
+        return jsonify({"status": "ok"}), 200
+
+    except Exception as e:
+        logging.error(f"Ошибка при обработке вебхука: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+# Запуск Flask приложения
 if __name__ == "__main__":
-    app.run(debug=False, host="0.0.0.0", port=10000)  # Обновите порт
+    app.run(debug=False, host="0.0.0.0", port=10000)
