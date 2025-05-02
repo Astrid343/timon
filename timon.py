@@ -9,7 +9,7 @@ from telegram.ext import CommandHandler, Dispatcher, Filters, MessageHandler, Up
 
 # Ваши ключи
 TELEGRAM_TOKEN = "7942858083:AAG1E_upeUZayYi33OfA6y9eGSyo3-dwJc4"
-OPENAI_API_KEY = "your-openai-api-key"  # Здесь добавьте ваш OpenAI API ключ
+OPENAI_API_KEY = "sk-ijklmnopqrstuvwxijklmnopqrstuvwxijklmnop"  # Здесь добавьте ваш OpenAI API ключ
 WEBHOOK_URL = "https://your-render-app-url.com/webhook"  # Укажите ваш URL на Render
 
 # Инициализация бота и диспетчера
