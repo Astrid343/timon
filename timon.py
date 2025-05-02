@@ -1,84 +1,161 @@
 import os
-from flask import Flask, request
 import logging
 import json
 import httpx
 import openai
-from telegram import Bot, Update
-from telegram.ext import CommandHandler, Dispatcher, Filters, MessageHandler, Updater
+from flask import Flask, request
+from telegram import Update, Bot
+from telegram.ext import (
+    Application,
+    ApplicationBuilder,
+    CommandHandler,
+    MessageHandler,
+    ContextTypes,
+    filters,
+)
 
-# Ваши ключи
+# Ключи
 TELEGRAM_TOKEN = "7942858083:AAG1E_upeUZayYi33OfA6y9eGSyo3-dwJc4"
-OPENAI_API_KEY = "sk-ijklmnopqrstuvwxijklmnopqrstuvwxijklmnop"  # Здесь добавьте ваш OpenAI API ключ
-WEBHOOK_URL = "https://timon-sgzp.onrender.com/webhook"  # Укажите ваш URL на Render
+OPENAI_API_KEY = "import os
+import logging
+import json
+import httpx
+import openai
+from flask import Flask, request
+from telegram import Update, Bot
+from telegram.ext import (
+    Application,
+    ApplicationBuilder,
+    CommandHandler,
+    MessageHandler,
+    ContextTypes,
+    filters,
+)
 
-# Инициализация бота и диспетчера
-bot = Bot(TELEGRAM_TOKEN)
-updater = Updater(token=TELEGRAM_TOKEN, use_context=True)
-dispatcher = updater.dispatcher
+# Ключи
+TELEGRAM_TOKEN = "7942858083:AAG1E_upeUZayYi33OfA6y9eGSyo3-dwJc4"
+OPENAI_API_KEY = "sk-ijklmnopqrstuvwxijklmnopqrstuvwxijklmnop"  # ← ВСТАВЬ СЮДА СВОЙ OpenAI ключ
+WEBHOOK_URL = "https://timon-sgzp.onrender.com/webhook"  # ← ВСТАВЬ СЮДА СВОЙ URL на Render
 
-# Инициализация OpenAI API
+# Логирование
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(name)
+
+# Инициализация Flask
+app = Flask(name)
+
+# Инициализация OpenAI
 openai.api_key = OPENAI_API_KEY
 
-# Включаем логирование
-logging.basicConfig(level=logging.INFO)
+# Telegram application
+application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
-# Устанавливаем webhook
-def set_webhook():
-    response = httpx.post(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/setWebhook", data={"url": WEBHOOK_URL})
-    if response.status_code == 200:
-        logging.info("Вебхук успешно установлен.")
-    else:
-        logging.error("Ошибка установки вебхука.")
+# Обработчик /start
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Привет! Я бот.")
 
-# Обработчик команды /start
-def start(update, context):
-    update.message.reply_text("Привет! Я бот и готов помогать!")
-
-# Функция для общения с OpenAI
-def get_openai_response(prompt):
+# Обработка текста через OpenAI
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_message = update.message.text
     try:
         response = openai.Completion.create(
-            engine="text-davinci-003",  # Можно использовать "gpt-4" или другие модели
-            prompt=prompt,
+            engine="text-davinci-003",
+            prompt=user_message,
             max_tokens=100,
             temperature=0.7,
         )
-        return response.choices[0].text.strip()
+        reply = response.choices[0].text.strip()
     except Exception as e:
-        logging.error(f"Ошибка при взаимодействии с OpenAI: {e}")
-        return "Извините, я не смог обработать ваш запрос."
+        logger.error(f"Ошибка OpenAI: {e}")
+        reply = "Ошибка при обращении к OpenAI."
+    await update.message.reply_text(reply)
 
-# Обработчик для получения всех сообщений
-def handle_message(update, context):
-    user_message = update.message.text
-    logging.info(f"Получено сообщение от пользователя: {user_message}")
-    
-    # Получаем ответ от OpenAI
-    openai_response = get_openai_response(user_message)
-    
-    # Отправляем ответ пользователю
-    update.message.reply_text(openai_response)
+# Регистрируем обработчики
+application.add_handler(CommandHandler("start", start))
+application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
 
-# Создаем обработчики
-start_handler = CommandHandler('start', start)
-message_handler = MessageHandler(Filters.text & ~Filters.command, handle_message)
-
-# Добавляем обработчики в диспетчер
-dispatcher.add_handler(start_handler)
-dispatcher.add_handler(message_handler)
-
-# Обработчик для вебхука
-app = Flask(__name__)
-
+# Flask endpoint для webhook
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    json_str = request.get_data().decode('UTF-8')
-    update = Update.de_json(json.loads(json_str), bot)
-    dispatcher.process_update(update)
+    update = Update.de_json(request.get_json(force=True), application.bot)
+    application.update_queue.put_nowait(update)
     return '', 200
 
-# Устанавливаем вебхук при запуске
-if __name__ == "__main__":
+# Установка webhook
+def set_webhook():
+    bot = Bot(TELEGRAM_TOKEN)
+    response = httpx.post(
+        f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/setWebhook",
+        data={"url": WEBHOOK_URL}
+    )
+    if response.status_code == 200:
+        logger.info("Вебхук установлен.")
+    else:
+        logger.error(f"Не удалось установить вебхук: {response.text}")
+
+# Запуск Flask
+if name == "main":
     set_webhook()
-    app.run(debug=False, host='0.0.0.0', port=10000)  # Flask запускается на всех адресах
+    app.run(host='0.0.0.0', port=10000)"  # ← ВСТАВЬ СЮДА СВОЙ OpenAI ключ
+WEBHOOK_URL = "https://your-render-url.onrender.com/webhook"  # ← ВСТАВЬ СЮДА СВОЙ URL на Render
+
+# Логирование
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Инициализация Flask
+app = Flask(__name__)
+
+# Инициализация OpenAI
+openai.api_key = OPENAI_API_KEY
+
+# Telegram application
+application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+
+# Обработчик /start
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Привет! Я бот.")
+
+# Обработка текста через OpenAI
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_message = update.message.text
+    try:
+        response = openai.Completion.create(
+            engine="text-davinci-003",
+            prompt=user_message,
+            max_tokens=100,
+            temperature=0.7,
+        )
+        reply = response.choices[0].text.strip()
+    except Exception as e:
+        logger.error(f"Ошибка OpenAI: {e}")
+        reply = "Ошибка при обращении к OpenAI."
+    await update.message.reply_text(reply)
+
+# Регистрируем обработчики
+application.add_handler(CommandHandler("start", start))
+application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
+
+# Flask endpoint для webhook
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    update = Update.de_json(request.get_json(force=True), application.bot)
+    application.update_queue.put_nowait(update)
+    return '', 200
+
+# Установка webhook
+def set_webhook():
+    bot = Bot(TELEGRAM_TOKEN)
+    response = httpx.post(
+        f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/setWebhook",
+        data={"url": WEBHOOK_URL}
+    )
+    if response.status_code == 200:
+        logger.info("Вебхук установлен.")
+    else:
+        logger.error(f"Не удалось установить вебхук: {response.text}")
+
+# Запуск Flask
+if __name_ == "__main__":
+    set_webhook()
+    app.run(host='0.0.0.0', port=10000)
