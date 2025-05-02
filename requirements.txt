@@ -1,4 +1,4 @@
 python-telegram-bot==20.7
-quart
-hypercorn
-openai==0.28
+quart==0.19.4
+httpx==0.27.0
+hypercorn==0.16.0
