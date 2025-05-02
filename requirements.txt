@@ -1,4 +1,4 @@
 python-telegram-bot==20.7
 quart
 hypercorn
-openai
+openai==0.28
