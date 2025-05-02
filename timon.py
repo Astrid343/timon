@@ -1,58 +1,48 @@
-import openai
-import logging
 from flask import Flask, request
-from telegram import Update
-from telegram.ext import Application, MessageHandler, filters
-import os
+from telegram import Update, Bot
+from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
+import openai
 import asyncio
 
-# Установите OpenAI API ключ
+# Токены
+telegram_token = "7942858083:AAG1E_upeUZayYi33OfA6y9eGSyo3-dwJc4"
 openai.api_key = "sk-5678ijklmnopabcd5678ijklmnopabcd5678ijkl"
 
-# Настройка логирования
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-                    level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Telegram токен
-telegram_token = "7942858083:AAG1E_upeUZayYi33OfA6y9eGSyo3-dwJc4"
-
-# Flask приложение
+# Инициализация Flask и Telegram Application
 app = Flask(__name__)
+application = Application.builder().token(telegram_token).build()
 
-# Функция для обработки сообщений
-async def handle_message(update: Update, context):
+# Обработка сообщений
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
-    chat_id = update.message.chat_id
-    # Обработка сообщения с OpenAI
-    response = openai.Completion.create(
-        model="text-davinci-003",  # Используйте актуальную модель
-        prompt=user_message,
-        max_tokens=150
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": user_message}]
     )
-    reply_text = response.choices[0].text.strip()
-    # Отправка ответа
-    await context.bot.send_message(chat_id=chat_id, text=reply_text)
+    reply = response["choices"][0]["message"]["content"]
+    await update.message.reply_text(reply)
 
-# Функция для настройки webhook
+# Установка вебхука
 async def set_webhook():
-    application = Application.builder().token(telegram_token).build()
     webhook_url = f"https://timon-sgzp.onrender.com/webhook/{telegram_token}"
     await application.bot.set_webhook(url=webhook_url)
 
-# Основной маршрут webhook
-@app.route("/webhook/<token>", methods=["POST"])
-def webhook(token):
-    if token != telegram_token:
-        return "Invalid token", 403
-    json_str = request.get_data(as_text=True)
-    update = Update.de_json(json_str, application.bot)
-    application.process_update(update)
-    return "OK"
+# Маршрут для Telegram webhook
+@app.route(f"/webhook/{telegram_token}", methods=["POST"])
+async def webhook():
+    if request.method == "POST":
+        update = Update.de_json(request.get_json(force=True), application.bot)
+        await application.process_update(update)
+        return "OK"
 
-# Запуск Flask сервера
+# Главная страница (не обязательно)
+@app.route("/")
+def index():
+    return "Бот работает!"
+
+# Регистрация хендлеров и запуск
+application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
 if __name__ == "__main__":
-    set_webhook()
-
-    # Настроим сервер Flask для работы на порту 5000
-    app.run(host="0.0.0.0", port=5000)  # Убедитесь, что порт соответствует настройкам Render
+    asyncio.run(set_webhook())
+    app.run(host="0.0.0.0", port=5000)
