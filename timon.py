@@ -52,15 +52,7 @@ def webhook(token):
 
 # Запуск Flask сервера
 if __name__ == "__main__":
-    application = Application.builder().token(telegram_token).build()
-    application.add_handler(MessageHandler(filters.TEXT, handle_message))  # Для обработки текстовых сообщений
+    set_webhook()
 
-    # Устанавливаем webhook
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(set_webhook())
-
-    # Получаем порт из переменной окружения Render
-    port = int(os.environ.get("PORT", 5000))
-
-    # Запуск Flask приложения
-    app.run(host="0.0.0.0", port=port)
+    # Настроим сервер Flask для работы на порту 5000
+    app.run(host="0.0.0.0", port=5000)  # Убедитесь, что порт соответствует настройкам Render
