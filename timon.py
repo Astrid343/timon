@@ -1,6 +1,6 @@
 from telegram import Update
 from telegram.ext import Application, CommandHandler
-from flask import Flask, request
+from flask import Flask, request, jsonify
 import logging
 
 app = Flask(__name__)
@@ -23,13 +23,14 @@ async def start(update: Update, context):
 application.add_handler(CommandHandler("start", start))
 
 # Установка вебхука
-application.bot.set_webhook(url="https://timon-sgzp.onrender.com/webhook/" + telegram_token)
+async def set_webhook():
+    await application.bot.set_webhook(url="https://timon-sgzp.onrender.com/webhook/" + telegram_token)
 
 # Вебхук
 @app.route(f'/webhook/{telegram_token}', methods=['POST'])
 def webhook():
-    json_str = request.get_data(as_text=True)
-    update = Update.de_json(json_str, application.bot)
+    json_str = request.get_data(as_text=True)  # Получаем данные как строку
+    update = Update.de_json(json_str, application.bot)  # Преобразуем строку в объект Update
     application.process_update(update)
     return '', 200
 
