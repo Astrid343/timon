@@ -1,67 +1,55 @@
 from flask import Flask, request
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 import openai
-import asyncio
 
-# --- Настройки ---
-BOT_TOKEN = "7942858083:AAG1E_upeUZayYi33OfA6y9eGSyo3-dwJc4"
-WEBHOOK_PATH = f"/webhook/{BOT_TOKEN}"
-WEBHOOK_URL = f"https://timon-sgzp.onrender.com{WEBHOOK_PATH}"
+# Настройки
+TELEGRAM_TOKEN = "7942858083:AAG1E_upeUZayYi33OfA6y9eGSyo3-dwJc4"
 OPENAI_API_KEY = "sk-5678ijklmnopabcd5678ijklmnopabcd5678ijkl"
+WEBHOOK_PATH = f"/webhook/{TELEGRAM_TOKEN}"
+WEBHOOK_URL = f"https://timon-sgzp.onrender.com{WEBHOOK_PATH}"
+
+app = Flask(__name__)
+application = Application.builder().token(TELEGRAM_TOKEN).build()
 
 openai.api_key = OPENAI_API_KEY
-app = Flask(__name__)
 
-application = Application.builder().token(BOT_TOKEN).build()
-init_task = None
-
-# Инициализация приложения один раз
-@app.before_first_request
-def before_first_request():
-    global init_task
-    loop = asyncio.get_event_loop()
-    if init_task is None:
-        init_task = loop.create_task(initialize_bot())
-
-async def initialize_bot():
-    await application.initialize()
-    await application.bot.set_webhook(url=WEBHOOK_URL)
-
-# Обработчик /start
+# Обработка команд
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Привет! Я бот с OpenAI. Напиши мне что-нибудь.")
+    await update.message.reply_text("Привет! Напиши мне что-нибудь.")
 
-# Обработка текста и ответ через ChatGPT
-async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": user_message}]
-        )
-        reply = response.choices[0].message.content.strip()
-    except Exception as e:
-        reply = f"Произошла ошибка при обращении к OpenAI: {e}"
-    await update.message.reply_text(reply)
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": user_message}]
+    )
+    reply_text = response["choices"][0]["message"]["content"]
+    await update.message.reply_text(reply_text)
 
-# Добавление хендлеров
 application.add_handler(CommandHandler("start", start))
-application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat))
+application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-# Webhook маршрут
-@app.post(WEBHOOK_PATH)
+# Webhook endpoint
+@app.route(WEBHOOK_PATH, methods=["POST"])
 async def webhook():
-    data = await request.get_json(force=True)
-    update = Update.de_json(data, application.bot)
+    update = Update.de_json(request.get_json(force=True), application.bot)
+    await application.initialize()
     await application.process_update(update)
-    return "OK"
+    return "ok"
 
-# Проверка на главной странице
-@app.get("/")
+# Проверка
+@app.route("/", methods=["GET"])
 def index():
     return "Бот работает!"
 
-# Запуск
+# Запуск приложения
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    import asyncio
+
+    async def main():
+        await application.initialize()
+        await application.bot.set_webhook(WEBHOOK_URL)
+        app.run(host="0.0.0.0", port=5000)
+
+    asyncio.run(main())
