@@ -29,9 +29,10 @@ async def set_webhook():
 # Вебхук
 @app.route(f'/webhook/{telegram_token}', methods=['POST'])
 def webhook():
-    json_str = request.get_data(as_text=True)  # Получаем данные как строку
-    update = Update.de_json(json_str, application.bot)  # Преобразуем строку в объект Update
-    application.process_update(update)
+    json_data = request.get_json()  # Получаем данные как JSON
+    if json_data:
+        update = Update.de_json(json_data, application.bot)  # Преобразуем JSON в объект Update
+        application.process_update(update)
     return '', 200
 
 # Запуск Flask
