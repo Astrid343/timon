@@ -44,7 +44,7 @@ application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_m
 # === Вебхук для Telegram ===
 @app.post(f"/webhook/{TELEGRAM_TOKEN}")
 async def webhook():
-    data = await request.get_json(force=True)
+    data = request.get_json(force=True)
     update = Update.de_json(data, application.bot)
     await application.process_update(update)
     return "OK"
