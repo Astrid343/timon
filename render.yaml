@@ -1,7 +1,10 @@
 services:
   - type: web
-    name: timon
+    name: timon-bot
     env: python
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "python timon.py"
-    port: 5000  # Убедитесь, что здесь указан правильный порт
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python timon.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11
