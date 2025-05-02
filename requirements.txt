@@ -1,4 +1,4 @@
 Flask==2.3.2
 python-telegram-bot==20.1
 httpx==0.23.3  # Обновленная версия, которая совместима с python-telegram-bot
-openai==0.27.0  # Для работы с OpenAI API\
+openai==0.27.0  # Для работы с OpenAI API
