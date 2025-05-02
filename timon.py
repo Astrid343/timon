@@ -1,8 +1,9 @@
+import os
 import logging
 import openai
 from flask import Flask, request
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
+from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
 # API tokens
 TELEGRAM_API_TOKEN = "7942858083:AAG1E_upeUZayYi33OfA6y9eGSyo3-dwJc4"
@@ -17,16 +18,15 @@ openai.api_key = OPENAI_API_KEY
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 
-# Create the Telegram application globally
-application = Application.builder().token(TELEGRAM_API_TOKEN).build()
-
-# Command handler
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# Function to handle /start command
+async def start(update: Update, context):
     await update.message.reply_text("Hello! Send me a message and I will reply with GPT-3's response.")
 
-# Message handler
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# Function to handle incoming messages
+async def handle_message(update: Update, context):
     user_message = update.message.text
+
+    # Call OpenAI API to get a response
     try:
         response = openai.Completion.create(
             model="text-davinci-003",
@@ -35,21 +35,23 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         await update.message.reply_text(response.choices[0].text.strip())
     except Exception as e:
-        logging.error(f"OpenAI error: {e}")
         await update.message.reply_text("Error: Could not process your request.")
+        logging.error(f"Error: {e}")
 
-# Register handlers
-application.add_handler(CommandHandler("start", start))
-application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-
-# Flask route to handle Telegram webhook
+# Flask route to handle webhooks
 @app.route(f"/webhook/{TELEGRAM_API_TOKEN}", methods=["POST"])
-async def telegram_webhook():
-    payload = await request.get_json()
-    update = Update.de_json(payload, application.bot)
-    await application.process_update(update)
-    return "", 200
+def telegram_webhook():
+    try:
+        payload = request.get_json()  # Убираем await, так как get_json() синхронный
+        logging.info(f"Received payload: {payload}")
+        update = Update.de_json(payload, None)
+        application = Application.builder().token(TELEGRAM_API_TOKEN).build()
+        application.process_update(update)
+        return "", 200
+    except Exception as e:
+        logging.error(f"Error processing webhook: {e}")
+        return "Internal Server Error", 500
 
 # Run Flask app
 if __name__ == "__main__":
-    app.run(debug=False, host="0.0.0.0", port=10000)
+    app.run(debug=False, host="0.0.0.0", port=10000)  # Обновите порт
