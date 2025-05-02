@@ -12,7 +12,7 @@ openai.api_key = "sk-5678ijklmnopabcd5678ijklmnopabcd5678ijkl"
 # Настройка логирования
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
                     level=logging.INFO)
-logger = logging.getLogger(name)
+logger = logging.getLogger(__name__)
 
 # Telegram токен
 telegram_token = "7942858083:AAG1E_upeUZayYi33OfA6y9eGSyo3-dwJc4"
