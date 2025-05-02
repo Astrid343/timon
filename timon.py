@@ -48,5 +48,8 @@ async def webhook():
     return "", 200
 
 # Run Quart app
-if __name__ == "main":
-    app.run(debug=False, host="0.0.0.0", port=10000)
+port = int(os.getenv("PORT", 10000))
+
+# Run Quart app
+if __name__ == "__main__":
+    app.run(debug=False, host="0.0.0.0", port=port)
