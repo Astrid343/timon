@@ -1,62 +1,66 @@
 from flask import Flask, request
 from telegram import Update
-from telegram.ext import (
-    ApplicationBuilder, CommandHandler, MessageHandler,
-    ContextTypes, filters
-)
+from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 import openai
+import asyncio
 
-telegram_token = "7942858083:AAG1E_upeUZayYi33OfA6y9eGSyo3-dwJc4"
-openai.api_key = "sk-5678ijklmnopabcd5678ijklmnopabcd5678ijkl"
+# === 🔐 Твои ключи ВШИТЫ напрямую ===
+TELEGRAM_TOKEN = "7942858083:AAG1E_upeUZayYi33OfA6y9eGSyo3-dwJc4"
+OPENAI_API_KEY = "sk-ijklmnopqrstuvwxijklmnopqrstuvwxijklmnop"
 
+# Устанавливаем ключ OpenAI
+openai.api_key = OPENAI_API_KEY
+
+# === Flask-приложение ===
 app = Flask(__name__)
 
-# Создаем Telegram-приложение
-application = ApplicationBuilder().token(telegram_token).build()
+# === Telegram Application ===
+application = Application.builder().token(TELEGRAM_TOKEN).build()
 
-# Обработка команды /start
+# === Команда /start ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Привет! Напиши мне что-нибудь, и я отвечу с помощью ChatGPT.")
+    await update.message.reply_text("Привет! Я GPT-бот. Напиши мне сообщение, и я отвечу 😉")
 
-# Обработка обычных сообщений
+# === Обработка текстовых сообщений ===
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
-
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-3.5-turbo",  # Можно заменить на "gpt-4", если есть доступ
             messages=[
-                {"role": "user", "content": user_message}
-            ]
+                {"role": "system", "content": "Ты дружелюбный Telegram-бот на базе ChatGPT."},
+                {"role": "user", "content": user_message},
+            ],
         )
         reply = response['choices'][0]['message']['content']
+        await update.message.reply_text(reply)
     except Exception as e:
-        reply = "Произошла ошибка при запросе к OpenAI."
+        await update.message.reply_text(f"Ошибка OpenAI: {e}")
 
-    await update.message.reply_text(reply)
-
-# Регистрируем обработчики
+# === Обработчики ===
 application.add_handler(CommandHandler("start", start))
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-# Синхронная обработка вебхуков
-@app.route(f"/webhook/{telegram_token}", methods=["POST"])
-def webhook():
-    update = Update.de_json(request.get_json(force=True), application.bot)
-    application.process_update(update)
-    return "ok"
+# === Вебхук для Telegram ===
+@app.post(f"/webhook/{TELEGRAM_TOKEN}")
+async def webhook():
+    data = await request.get_json(force=True)
+    update = Update.de_json(data, application.bot)
+    await application.process_update(update)
+    return "OK"
 
-# Простой root маршрут для проверки
-@app.route("/")
-def home():
-    return "Бот работает!"
+# === Главная страница для Render (200 OK) ===
+@app.get("/")
+def index():
+    return "🤖 Timon бот запущен и ждёт сообщений!", 200
 
-# Устанавливаем webhook при запуске
-def set_webhook():
-    webhook_url = f"https://timon-sgzp.onrender.com/webhook/{telegram_token}"
-    import asyncio
-    asyncio.run(application.bot.set_webhook(url=webhook_url))
+# === Установка Webhook ===
+async def set_webhook():
+    webhook_url = f"https://timon-sgzp.onrender.com/webhook/{TELEGRAM_TOKEN}"  # ⚠️ Заменить на свой домен Render
+    await application.bot.set_webhook(webhook_url)
 
+# === Запуск Flask + установка Webhook ===
 if __name__ == "__main__":
-    set_webhook()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(set_webhook())
     app.run(host="0.0.0.0", port=5000)
