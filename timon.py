@@ -2,9 +2,9 @@ import openai
 import logging
 from flask import Flask, request
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters
-from telegram.ext import Application
+from telegram.ext import Application, MessageHandler, filters
 import os
+import asyncio
 
 # Установите OpenAI API ключ
 openai.api_key = "sk-5678ijklmnopabcd5678ijklmnopabcd5678ijkl"
@@ -12,7 +12,7 @@ openai.api_key = "sk-5678ijklmnopabcd5678ijklmnopabcd5678ijkl"
 # Настройка логирования
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
                     level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(name)
 
 # Telegram токен
 telegram_token = "7942858083:AAG1E_upeUZayYi33OfA6y9eGSyo3-dwJc4"
@@ -56,9 +56,11 @@ if __name__ == "__main__":
     application.add_handler(MessageHandler(filters.TEXT, handle_message))  # Для обработки текстовых сообщений
 
     # Устанавливаем webhook
-    import asyncio
     loop = asyncio.get_event_loop()
     loop.run_until_complete(set_webhook())
 
+    # Получаем порт из переменной окружения Render
+    port = int(os.environ.get("PORT", 5000))
+
     # Запуск Flask приложения
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=port)
