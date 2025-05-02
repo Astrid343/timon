@@ -14,7 +14,7 @@ import asyncio
 
 # === НАСТРОЙКИ ===
 BOT_TOKEN = "7942858083:AAG1E_upeUZayYi33OfA6y9eGSyo3-dwJc4"
-OPENAI_API_KEY = "sk-uvwxijklmnop1234uvwxijklmnop1234uvwxijkl"  # ВСТАВЬТЕ СВОЙ КЛЮЧ
+OPENAI_API_KEY = "sk-qrst5678qrst5678qrst5678qrst5678qrst5678"  # ВСТАВЬТЕ СВОЙ КЛЮЧ
 WEBHOOK_URL = f"https://your-app-name.onrender.com/webhook/{BOT_TOKEN}"
 
 # === ИНИЦИАЛИЗАЦИЯ ===
