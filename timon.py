@@ -66,7 +66,7 @@ async def main():
     from hypercorn.asyncio import serve
     from hypercorn.config import Config
     config = Config()
-    config.bind = ["0.0.0.0:10000"]
+    config.bind = [f"0.0.0.0:{os.environ.get('PORT', '10000')}"]
     await serve(app, config)
 
 if __name__ == "__main__":
