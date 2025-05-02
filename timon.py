@@ -1,9 +1,8 @@
-import os
 import logging
 import openai
 from flask import Flask, request
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters
+from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 
 # API tokens
 TELEGRAM_API_TOKEN = "7942858083:AAG1E_upeUZayYi33OfA6y9eGSyo3-dwJc4"
@@ -18,15 +17,16 @@ openai.api_key = OPENAI_API_KEY
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 
-# Function to handle /start command
-async def start(update: Update, context):
+# Create the Telegram application globally
+application = Application.builder().token(TELEGRAM_API_TOKEN).build()
+
+# Command handler
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Hello! Send me a message and I will reply with GPT-3's response.")
 
-# Function to handle incoming messages
-async def handle_message(update: Update, context):
+# Message handler
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
-
-    # Call OpenAI API to get a response
     try:
         response = openai.Completion.create(
             model="text-davinci-003",
@@ -35,18 +35,21 @@ async def handle_message(update: Update, context):
         )
         await update.message.reply_text(response.choices[0].text.strip())
     except Exception as e:
+        logging.error(f"OpenAI error: {e}")
         await update.message.reply_text("Error: Could not process your request.")
-        logging.error(f"Error: {e}")
 
-# Flask route to handle webhooks
+# Register handlers
+application.add_handler(CommandHandler("start", start))
+application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
+# Flask route to handle Telegram webhook
 @app.route(f"/webhook/{TELEGRAM_API_TOKEN}", methods=["POST"])
-async def webhook(request):
+async def telegram_webhook():
     payload = await request.get_json()
-    update = Update.de_json(payload, None)
-    application = Application.builder().token(TELEGRAM_API_TOKEN).build()
+    update = Update.de_json(payload, application.bot)
     await application.process_update(update)
     return "", 200
 
 # Run Flask app
 if __name__ == "__main__":
-    app.run(debug=False, host="0.0.0.0", port=10000)  # Обновите порт
+    app.run(debug=False, host="0.0.0.0", port=10000)
