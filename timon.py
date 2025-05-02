@@ -4,63 +4,64 @@ from telegram.ext import Application, CommandHandler, MessageHandler, ContextTyp
 import openai
 import asyncio
 
-# === 🔐 Твои ключи ВШИТЫ напрямую ===
-TELEGRAM_TOKEN = "7942858083:AAG1E_upeUZayYi33OfA6y9eGSyo3-dwJc4"
-OPENAI_API_KEY = "sk-ijklmnopqrstuvwxijklmnopqrstuvwxijklmnop"
+# --- Настройки ---
+BOT_TOKEN = "7942858083:AAG1E_upeUZayYi33OfA6y9eGSyo3-dwJc4"
+WEBHOOK_PATH = f"/webhook/{BOT_TOKEN}"
+WEBHOOK_URL = f"https://timon-sgzp.onrender.com{WEBHOOK_PATH}"
+OPENAI_API_KEY = "sk-5678ijklmnopabcd5678ijklmnopabcd5678ijkl"
 
-# Устанавливаем ключ OpenAI
 openai.api_key = OPENAI_API_KEY
-
-# === Flask-приложение ===
 app = Flask(__name__)
 
-# === Telegram Application ===
-application = Application.builder().token(TELEGRAM_TOKEN).build()
+application = Application.builder().token(BOT_TOKEN).build()
+init_task = None
 
-# === Команда /start ===
+# Инициализация приложения один раз
+@app.before_first_request
+def before_first_request():
+    global init_task
+    loop = asyncio.get_event_loop()
+    if init_task is None:
+        init_task = loop.create_task(initialize_bot())
+
+async def initialize_bot():
+    await application.initialize()
+    await application.bot.set_webhook(url=WEBHOOK_URL)
+
+# Обработчик /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Привет! Я GPT-бот. Напиши мне сообщение, и я отвечу 😉")
+    await update.message.reply_text("Привет! Я бот с OpenAI. Напиши мне что-нибудь.")
 
-# === Обработка текстовых сообщений ===
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# Обработка текста и ответ через ChatGPT
+async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  # Можно заменить на "gpt-4", если есть доступ
-            messages=[
-                {"role": "system", "content": "Ты дружелюбный Telegram-бот на базе ChatGPT."},
-                {"role": "user", "content": user_message},
-            ],
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": user_message}]
         )
-        reply = response['choices'][0]['message']['content']
-        await update.message.reply_text(reply)
+        reply = response.choices[0].message.content.strip()
     except Exception as e:
-        await update.message.reply_text(f"Ошибка OpenAI: {e}")
+        reply = f"Произошла ошибка при обращении к OpenAI: {e}"
+    await update.message.reply_text(reply)
 
-# === Обработчики ===
+# Добавление хендлеров
 application.add_handler(CommandHandler("start", start))
-application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat))
 
-# === Вебхук для Telegram ===
-@app.post(f"/webhook/{TELEGRAM_TOKEN}")
+# Webhook маршрут
+@app.post(WEBHOOK_PATH)
 async def webhook():
-    data = request.get_json(force=True)
+    data = await request.get_json(force=True)
     update = Update.de_json(data, application.bot)
     await application.process_update(update)
     return "OK"
 
-# === Главная страница для Render (200 OK) ===
+# Проверка на главной странице
 @app.get("/")
 def index():
-    return "🤖 Timon бот запущен и ждёт сообщений!", 200
+    return "Бот работает!"
 
-# === Установка Webhook ===
-async def set_webhook():
-    webhook_url = f"https://timon-sgzp.onrender.com/webhook/{TELEGRAM_TOKEN}"  # ⚠️ Заменить на свой домен Render
-    await application.bot.set_webhook(webhook_url)
-
-# === Запуск Flask + установка Webhook ===
+# Запуск
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(set_webhook())
     app.run(host="0.0.0.0", port=5000)
