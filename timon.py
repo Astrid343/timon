@@ -48,20 +48,21 @@ telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_
 
 # Роут для вебхука
 @app.route("/webhook", methods=["POST"])
-def webhook():
+async def webhook():
     update = Update.de_json(request.get_json(), telegram_app.bot)
-    telegram_app.process_update(update)
+    await telegram_app.process_update(update)
     return "OK", 200
 
 # Устанавливаем вебхук
-def set_webhook():
+async def set_webhook():
     try:
-        telegram_app.bot.set_webhook(WEBHOOK_URL)
+        await telegram_app.bot.set_webhook(WEBHOOK_URL)
         logger.info("Вебхук успешно установлен.")
     except Exception as e:
         logger.error(f"Ошибка при установке вебхука: {e}")
 
 # Запускаем Flask приложение и Telegram бота
 if __name__ == "__main__":
-    set_webhook()
+    import asyncio
+    asyncio.run(set_webhook())  # Устанавливаем вебхук асинхронно
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
