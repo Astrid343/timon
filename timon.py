@@ -15,7 +15,7 @@ from openai import OpenAI
 
 # === НАСТРОЙКИ ===
 BOT_TOKEN = "7942858083:AAG1E_upeUZayYi33OfA6y9eGSyo3-dwJc4"
-DEEPSEEK_API_KEY = "sk-61d183527a914cf093202e5cbf28e6bc"  # ← подставь свой реальный ключ сюда
+DEEPSEEK_API_KEY = "sk-61d183527a914cf093202e5cbf28e6bc"
 WEBHOOK_URL = f"https://your-app-name.onrender.com/webhook/{BOT_TOKEN}"
 
 # === OpenAI SDK с DeepSeek API ===
@@ -35,7 +35,7 @@ async def call_deepseek_stream(prompt: str) -> str:
         response = await asyncio.to_thread(
             lambda: client.chat.completions.create(
                 model="deepseek-chat",
-                messages=[ 
+                messages=[
                     {"role": "system", "content": "You are a helpful assistant."},
                     {"role": "user", "content": prompt}
                 ],
@@ -59,13 +59,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "2. Если хочешь узнать, что я могу делать — просто скажи /help 🚀\n\n"
         "Давай начнем! ✨"
     )
-    await update.message.reply_text(welcome_message, parse_mode="MarkdownV2")
+    await update.message.reply_text(welcome_message, parse_mode="Markdown")
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
     reply = await call_deepseek_stream(user_message)
     await update.message.reply_text(reply)
 
+# === РЕГИСТРАЦИЯ ХЕНДЛЕРОВ ===
 application.add_handler(CommandHandler("start", start))
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
@@ -76,9 +77,9 @@ async def webhook():
         data = await request.get_json()
         update = Update.de_json(data, application.bot)
         await application.process_update(update)
-        logging.info("Webhook received and processed successfully.")
+        logging.info("✅ Webhook обработан.")
     except Exception as e:
-        logging.error(f"Exception in webhook: {e}")
+        logging.error(f"❌ Ошибка в webhook: {e}")
     return "", 200
 
 # === MAIN ===
@@ -86,7 +87,7 @@ async def main():
     await application.initialize()
     await application.start()
     await application.bot.set_webhook(url=WEBHOOK_URL)
-    logging.info(f"Webhook URL set to: {WEBHOOK_URL}")
+    logging.info(f"🚀 Webhook установлен: {WEBHOOK_URL}")
 
     from hypercorn.asyncio import serve
     from hypercorn.config import Config
