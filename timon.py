@@ -76,7 +76,6 @@ f"/webhook/{BOT_TOKEN}"
 async def webhook():
     try:
         data = await request.get_json()
-        logging.info(f"📦 Webhook получил: {json.dumps(data)}")
         update = Update.de_json(data, application.bot)
         await application.process_update(update)
         logging.info("✅ Обновление обработано")
@@ -88,7 +87,6 @@ async def webhook():
 async def main():
     await application.initialize()
     await application.start()
-
     await application.bot.delete_webhook(drop_pending_updates=True)
     await application.bot.set_webhook(url=WEBHOOK_URL)
     logging.info(f"📡 Webhook установлен: {WEBHOOK_URL}")
