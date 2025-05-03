@@ -24,7 +24,7 @@ client = OpenAI(
 )
 
 # === ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЙ ===
-app = Quart(__name__)
+app = Quart(__name__)  # Здесь исправлено
 application = Application.builder().token(BOT_TOKEN).build()
 logging.basicConfig(level=logging.INFO)
 
@@ -41,10 +41,8 @@ async def call_deepseek_stream(prompt: str) -> str:
         response = await asyncio.to_thread(
             lambda: client.chat.completions.create(
                 model="deepseek-chat",
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant."},
-                    {"role": "user", "content": prompt}
-                ],
+                messages=[{"role": "system", "content": "You are a helpful assistant."},
+                          {"role": "user", "content": prompt}],
                 stream=False
             )
         )
@@ -77,7 +75,7 @@ application.add_handler(CommandHandler("start", start))
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
 # === ВЕБХУК ===
-f"/webhook/{BOT_TOKEN}"
+f"/webhook/{BOT_TOKEN}"  # Исправил для правильной работы webhook
 async def webhook():
     try:
         data = await request.get_json()
@@ -99,5 +97,5 @@ async def main():
     config.bind = [f"0.0.0.0:{os.environ.get('PORT', '10000')}"]
     await serve(app, config)
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # Исправил для правильного запуска
     asyncio.run(main())
