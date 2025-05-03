@@ -35,7 +35,7 @@ async def call_deepseek_stream(prompt: str) -> str:
         response = await asyncio.to_thread(
             lambda: client.chat.completions.create(
                 model="deepseek-chat",
-                messages=[
+                messages=[ 
                     {"role": "system", "content": "You are a helpful assistant."},
                     {"role": "user", "content": prompt}
                 ],
@@ -49,7 +49,17 @@ async def call_deepseek_stream(prompt: str) -> str:
 
 # === ХЕНДЛЕРЫ ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Привет! Напиши мне что-нибудь, и я отвечу с помощью DeepSeek.")
+    welcome_message = (
+        "*Привет!* 👋\n\n"
+        "Я бот, использующий *DeepSeek* 🤖 для того, чтобы помогать тебе отвечать на любые вопросы. "
+        "Ты можешь спросить меня что угодно, и я постараюсь ответить наилучшим образом, используя лучшие источники 🧠.\n\n"
+        "_Как я могу помочь тебе сегодня?_ 🙌\n\n"
+        "*Вот как ты можешь со мной взаимодействовать:* 😎\n"
+        "1. Напиши мне свой вопрос, и я постараюсь дать точный и полезный ответ 💬\n"
+        "2. Если хочешь узнать, что я могу делать — просто скажи /help 🚀\n\n"
+        "Давай начнем! ✨"
+    )
+    await update.message.reply_text(welcome_message, parse_mode="MarkdownV2")
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
@@ -66,6 +76,7 @@ async def webhook():
         data = await request.get_json()
         update = Update.de_json(data, application.bot)
         await application.process_update(update)
+        logging.info("Webhook received and processed successfully.")
     except Exception as e:
         logging.error(f"Exception in webhook: {e}")
     return "", 200
@@ -75,6 +86,7 @@ async def main():
     await application.initialize()
     await application.start()
     await application.bot.set_webhook(url=WEBHOOK_URL)
+    logging.info(f"Webhook URL set to: {WEBHOOK_URL}")
 
     from hypercorn.asyncio import serve
     from hypercorn.config import Config
