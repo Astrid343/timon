@@ -42,10 +42,10 @@ def format_response_for_telegram(text: str) -> str:
         stripped = line.strip()
 
         # Обработка блоков кода
-        if stripped.startswith("") and not in_code_block:
+        if stripped.startswith("```") and not in_code_block:
             in_code_block = True
             formatted.append("<pre>")
-        elif stripped.startswith("") and in_code_block:
+        elif stripped.startswith("```") and in_code_block:
             in_code_block = False
             formatted.append("</pre>")
         elif in_code_block:
@@ -94,7 +94,7 @@ application.add_handler(CommandHandler("start", start))
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
 # === ВЕБХУК ===
-@app.post(f"/webhook/{BOT_TOKEN}")
+f"/webhook/{BOT_TOKEN}"
 async def webhook():
     try:
         data = await request.get_json()
