@@ -1,5 +1,5 @@
 import os
-import json
+import html
 import logging
 import asyncio
 from quart import Quart, request
@@ -15,7 +15,7 @@ from openai import OpenAI
 
 # === НАСТРОЙКИ ===
 BOT_TOKEN = "7942858083:AAG1E_upeUZayYi33OfA6y9eGSyo3-dwJc4"
-DEEPSEEK_API_KEY = "sk-61d183527a914cf093202e5cbf28e6bc"  # ← подставь свой реальный ключ сюда
+DEEPSEEK_API_KEY = "sk-61d183527a914cf093202e5cbf28e6bc"  # ← замени на свой реальный ключ
 WEBHOOK_URL = f"https://your-app-name.onrender.com/webhook/{BOT_TOKEN}"
 
 # === OpenAI SDK с DeepSeek API ===
@@ -29,6 +29,30 @@ app = Quart(__name__)
 application = Application.builder().token(BOT_TOKEN).build()
 logging.basicConfig(level=logging.INFO)
 
+# === Форматирование ответа под Telegram (HTML) ===
+def format_response_for_telegram(text: str) -> str:
+    text = html.escape(text)  # экранируем HTML-символы: <, >, &
+    lines = text.split('\n')
+    result = []
+    in_code_block = False
+
+    for line in lines:
+        if line.strip().startswith("```") and not in_code_block:
+            result.append("<pre>")
+            in_code_block = True
+        elif line.strip().startswith("```") and in_code_block:
+            result.append("</pre>")
+            in_code_block = False
+        elif in_code_block:
+            result.append(line)
+        elif line.startswith("**") and line.endswith("**"):
+            result.append(f"<b>{line[2:-2]}</b>")
+        elif line.startswith("* ") or line.startswith("- "):
+            result.append(f"<b>• {line[2:]}</b>")
+        else:
+            result.append(line)
+
+    return '\n'.join(result)
 
 # === DeepSeek вызов ===
 async def call_deepseek_stream(prompt: str) -> str:
@@ -48,24 +72,24 @@ async def call_deepseek_stream(prompt: str) -> str:
         logging.error(f"DeepSeek API error: {e}")
         return "Не удалось получить ответ от DeepSeek."
 
-
 # === ХЕНДЛЕРЫ ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Привет! Напиши мне что-нибудь, и я отвечу с помощью DeepSeek.")
-
+    await update.message.reply_text(
+        "Привет! Напиши мне что-нибудь, и я отвечу с помощью DeepSeek.",
+        parse_mode="HTML"
+    )
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
     reply = await call_deepseek_stream(user_message)
-    await update.message.reply_text(reply)
-
+    formatted_reply = format_response_for_telegram(reply)
+    await update.message.reply_text(formatted_reply, parse_mode="HTML")
 
 application.add_handler(CommandHandler("start", start))
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-
 # === ВЕБХУК ===
-@app.post(f"/webhook/{BOT_TOKEN}")
+f"/webhook/{BOT_TOKEN}"
 async def webhook():
     try:
         data = await request.get_json()
@@ -74,7 +98,6 @@ async def webhook():
     except Exception as e:
         logging.error(f"Exception in webhook: {e}")
     return "", 200
-
 
 # === MAIN ===
 async def main():
