@@ -115,7 +115,6 @@ async def main():
     from hypercorn.config import Config
     config = Config()
     config.bind = [f"0.0.0.0:{os.environ.get('PORT', '10000')}"]
-19:35
 
 
 await serve(app, config)
