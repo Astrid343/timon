@@ -29,9 +29,9 @@ app = Quart(__name__)
 application = Application.builder().token(BOT_TOKEN).build()
 logging.basicConfig(level=logging.INFO)
 
-# === Форматирование ответа под Telegram (HTML) ===
+# === Форматирование текста ===
 def format_response_for_telegram(text: str) -> str:
-    text = html.escape(text)  # экранируем HTML-символы: <, >, &
+    text = html.escape(text)  # экранируем <, >, &
     lines = text.split('\n')
     result = []
     in_code_block = False
@@ -74,10 +74,16 @@ async def call_deepseek_stream(prompt: str) -> str:
 
 # === ХЕНДЛЕРЫ ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "Привет! Напиши мне что-нибудь, и я отвечу с помощью DeepSeek.",
-        parse_mode="HTML"
+    welcome_message = (
+        "<b>👋 Привет! Я Timon — ИИ-бот, созданный для помощи и веселья!</b>\n\n"
+        "🤖 Я работаю на базе <b>DeepSeek AI</b>, поэтому могу:\n"
+        "• 📚 Объяснять сложные вещи простым языком\n"
+        "• 💡 Давать советы и идеи\n"
+        "• ✍️ Писать тексты, код, шутки и многое другое\n\n"
+        "👨‍💻 Создатель: <b>твой крутой разработчик</b>\n"
+        "📩 Просто напиши мне — и я постараюсь удивить тебя ответом!"
     )
+    await update.message.reply_text(welcome_message, parse_mode="HTML")
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
@@ -109,7 +115,10 @@ async def main():
     from hypercorn.config import Config
     config = Config()
     config.bind = [f"0.0.0.0:{os.environ.get('PORT', '10000')}"]
-    await serve(app, config)
+19:35
+
+
+await serve(app, config)
 
 if __name__ == "__main__":
     asyncio.run(main())
