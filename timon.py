@@ -15,8 +15,8 @@ from openai import OpenAI
 
 # === НАСТРОЙКИ ===
 BOT_TOKEN = "7942858083:AAG1E_upeUZayYi33OfA6y9eGSyo3-dwJc4"
-DEEPSEEK_API_KEY = "sk-61d183527a914cf093202e5cbf28e6bc"
-WEBHOOK_URL = f"https://timon-sgzp.onrender.com/webhook/{BOT_TOKEN}"
+DEEPSEEK_API_KEY = "sk-61d183527a914cf093202e5cbf28e6bc"  # ← подставь свой реальный ключ сюда
+WEBHOOK_URL = f"https://your-app-name.onrender.com/webhook/{BOT_TOKEN}"
 
 # === OpenAI SDK с DeepSeek API ===
 client = OpenAI(
@@ -28,6 +28,7 @@ client = OpenAI(
 app = Quart(__name__)
 application = Application.builder().token(BOT_TOKEN).build()
 logging.basicConfig(level=logging.INFO)
+
 
 # === DeepSeek вызов ===
 async def call_deepseek_stream(prompt: str) -> str:
@@ -45,51 +46,41 @@ async def call_deepseek_stream(prompt: str) -> str:
         return response.choices[0].message.content
     except Exception as e:
         logging.error(f"DeepSeek API error: {e}")
-        return "⚠️ Не удалось получить ответ от DeepSeek."
+        return "Не удалось получить ответ от DeepSeek."
+
 
 # === ХЕНДЛЕРЫ ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message = (
-        "👋 *Привет!*\n\n"
-        "Я — Telegram-бот, подключённый к *DeepSeek AI* 🤖\n\n"
-        "Просто напиши мне любой вопрос или текст, и я постараюсь ответить максимально понятно и полезно!\n\n"
-        "🧠 *Возможности:*\n"
-        "• Генерация идей\n"
-        "• Ответы на вопросы\n"
-        "• Объяснение тем\n"
-        "• И многое другое!\n\n"
-        "💬 Напиши что-нибудь, чтобы начать!"
-    )
-    await update.message.reply_text(message, parse_mode="Markdown")
+    await update.message.reply_text("Привет! Напиши мне что-нибудь, и я отвечу с помощью DeepSeek.")
+
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
-    logging.info(f"📩 Получено сообщение: {user_message}")
     reply = await call_deepseek_stream(user_message)
     await update.message.reply_text(reply)
+
 
 application.add_handler(CommandHandler("start", start))
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
+
 # === ВЕБХУК ===
-f"/webhook/{BOT_TOKEN}"
+@app.post(f"/webhook/{BOT_TOKEN}")
 async def webhook():
     try:
         data = await request.get_json()
         update = Update.de_json(data, application.bot)
         await application.process_update(update)
-        logging.info("✅ Обновление обработано")
     except Exception as e:
-        logging.error(f"❌ Ошибка в webhook: {e}")
+        logging.error(f"Exception in webhook: {e}")
     return "", 200
+
 
 # === MAIN ===
 async def main():
     await application.initialize()
     await application.start()
-    await application.bot.delete_webhook(drop_pending_updates=True)
     await application.bot.set_webhook(url=WEBHOOK_URL)
-    logging.info(f"📡 Webhook установлен: {WEBHOOK_URL}")
 
     from hypercorn.asyncio import serve
     from hypercorn.config import Config
