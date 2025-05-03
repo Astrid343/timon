@@ -2,7 +2,6 @@ import os
 import json
 import logging
 import asyncio
-import httpx
 from quart import Quart, request
 from telegram import Update
 from telegram.ext import (
@@ -12,12 +11,18 @@ from telegram.ext import (
     ContextTypes,
     filters,
 )
+from openai import OpenAI
 
 # === НАСТРОЙКИ ===
 BOT_TOKEN = "7942858083:AAG1E_upeUZayYi33OfA6y9eGSyo3-dwJc4"
-OPENROUTER_API_KEY = "sk-61d183527a914cf093202e5cbf28e6bc"
-MODEL = "deepseek/deepseek-r1"
+DEEPSEEK_API_KEY = "sk-61d183527a914cf093202e5cbf28e6bc"  # ← подставь свой реальный ключ сюда
 WEBHOOK_URL = f"https://your-app-name.onrender.com/webhook/{BOT_TOKEN}"
+
+# === OpenAI SDK с DeepSeek API ===
+client = OpenAI(
+    api_key=DEEPSEEK_API_KEY,
+    base_url="https://api.deepseek.com"
+)
 
 # === ИНИЦИАЛИЗАЦИЯ ===
 app = Quart(__name__)
@@ -25,61 +30,28 @@ application = Application.builder().token(BOT_TOKEN).build()
 logging.basicConfig(level=logging.INFO)
 
 
-def process_content(content: str) -> str:
-    return content.replace('<think>', '').replace('</think>', '')
-
-
+# === DeepSeek вызов ===
 async def call_deepseek_stream(prompt: str) -> str:
-    headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "model": MODEL,
-        "messages": [{"role": "user", "content": prompt}],
-        "stream": True
-    }
-
-    async with httpx.AsyncClient(timeout=60.0) as client:
-        try:
-            async with client.stream(
-                "POST",
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers=headers,
-                json=payload
-            ) as response:
-
-                if response.status_code != 200:
-                    text = await response.aread()
-                    logging.error(f"Stream error: {response.status_code} - {text}")
-                    return "Ошибка при подключении к DeepSeek API."
-
-                full_response = []
-                async for line in response.aiter_lines():
-                    if line.startswith("data: "):
-                        line = line[6:]
-                    if not line.strip():
-                        continue
-                    try:
-                        chunk = json.loads(line)
-                        delta = chunk["choices"][0]["delta"]
-                        content = delta.get("content", "")
-                        if content:
-                            full_response.append(process_content(content))
-                    except Exception as e:
-                        logging.warning(f"Ошибка в разборе chunk: {e}")
-                        continue
-
-                return "".join(full_response)
-
-        except Exception as e:
-            logging.error(f"Exception during streaming: {e}")
-            return "Не удалось получить ответ от DeepSeek."
+    try:
+        response = await asyncio.to_thread(
+            lambda: client.chat.completions.create(
+                model="deepseek-chat",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {"role": "user", "content": prompt}
+                ],
+                stream=False
+            )
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        logging.error(f"DeepSeek API error: {e}")
+        return "Не удалось получить ответ от DeepSeek."
 
 
 # === ХЕНДЛЕРЫ ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Привет! Напиши мне что-нибудь, и я отвечу с помощью DeepSeek-R1.")
+    await update.message.reply_text("Привет! Напиши мне что-нибудь, и я отвечу с помощью DeepSeek.")
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
