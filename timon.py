@@ -15,7 +15,7 @@ from telegram.ext import (
 
 # === НАСТРОЙКИ ===
 BOT_TOKEN = "7942858083:AAG1E_upeUZayYi33OfA6y9eGSyo3-dwJc4"
-OPENROUTER_API_KEY = "sk-or-vv-795ff3514ba20dbe87eb45c90c18643e262a3df9e1c61fbe80e05d95f3ba0215"
+OPENROUTER_API_KEY = "sk-61d183527a914cf093202e5cbf28e6bc"
 MODEL = "deepseek/deepseek-r1"
 WEBHOOK_URL = f"https://your-app-name.onrender.com/webhook/{BOT_TOKEN}"
 
