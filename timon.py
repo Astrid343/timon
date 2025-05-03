@@ -1,5 +1,4 @@
 import os
-import html
 import logging
 import asyncio
 from quart import Quart, request
@@ -14,47 +13,29 @@ from telegram.ext import (
 from openai import OpenAI
 
 # === НАСТРОЙКИ ===
-BOT_TOKEN = "7942858083:AAG1E_upeUZayYi33OfA6y9eGSyo3-dwJc4"
-DEEPSEEK_API_KEY = "sk-61d183527a914cf093202e5cbf28e6bc"  # ← замени на свой реальный ключ
+BOT_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
+DEEPSEEK_API_KEY = "sk-61d183527a914cf093202e5cbf28e6bc"  # ← подставь свой ключ
 WEBHOOK_URL = f"https://your-app-name.onrender.com/webhook/{BOT_TOKEN}"
 
-# === OpenAI SDK с DeepSeek API ===
+# === ИНИЦИАЛИЗАЦИЯ КЛИЕНТА DeepSeek ===
 client = OpenAI(
     api_key=DEEPSEEK_API_KEY,
     base_url="https://api.deepseek.com"
 )
 
-# === ИНИЦИАЛИЗАЦИЯ ===
+# === ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЙ ===
 app = Quart(__name__)
 application = Application.builder().token(BOT_TOKEN).build()
 logging.basicConfig(level=logging.INFO)
 
-# === Форматирование текста ===
-def format_response_for_telegram(text: str) -> str:
-    text = html.escape(text)  # экранируем <, >, &
-    lines = text.split('\n')
-    result = []
-    in_code_block = False
+# === ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ: ЭКРАНИРОВАНИЕ ДЛЯ MarkdownV2 ===
+def escape_markdown(text: str) -> str:
+    escape_chars = r"_*[]()~`>#+-=|{}.!"
+    for char in escape_chars:
+        text = text.replace(char, f"\\{char}")
+    return text
 
-    for line in lines:
-        if line.strip().startswith("```") and not in_code_block:
-            result.append("<pre>")
-            in_code_block = True
-        elif line.strip().startswith("```") and in_code_block:
-            result.append("</pre>")
-            in_code_block = False
-        elif in_code_block:
-            result.append(line)
-        elif line.startswith("**") and line.endswith("**"):
-            result.append(f"<b>{line[2:-2]}</b>")
-        elif line.startswith("* ") or line.startswith("- "):
-            result.append(f"<b>• {line[2:]}</b>")
-        else:
-            result.append(line)
-
-    return '\n'.join(result)
-
-# === DeepSeek вызов ===
+# === ВЫЗОВ DeepSeek ===
 async def call_deepseek_stream(prompt: str) -> str:
     try:
         response = await asyncio.to_thread(
@@ -70,26 +51,27 @@ async def call_deepseek_stream(prompt: str) -> str:
         return response.choices[0].message.content
     except Exception as e:
         logging.error(f"DeepSeek API error: {e}")
-        return "Не удалось получить ответ от DeepSeek."
+        return "❌ Не удалось получить ответ от DeepSeek."
 
 # === ХЕНДЛЕРЫ ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    welcome_message = (
-        "<b>👋 Привет! Я Timon — ИИ-бот, созданный для помощи и веселья!</b>\n\n"
-        "🤖 Я работаю на базе <b>DeepSeek AI</b>, поэтому могу:\n"
-        "• 📚 Объяснять сложные вещи простым языком\n"
-        "• 💡 Давать советы и идеи\n"
-        "• ✍️ Писать тексты, код, шутки и многое другое\n\n"
-        "👨‍💻 Создатель: <b>твой крутой разработчик</b>\n"
-        "📩 Просто напиши мне — и я постараюсь удивить тебя ответом!"
+    welcome = (
+        "*Привет!*\n\n"
+        "Я — 🤖 *AI бот на базе DeepSeek*.\n\n"
+        "Мой создатель: [@your_username](https://t.me/your_username)\n\n"
+        "📌 Я умею:\n"
+        "• Отвечать на любые вопросы\n"
+        "• Объяснять сложные темы\n"
+        "• Помогать с кодом и не только\n\n"
+        "_Просто напиши сообщение, и я отвечу!_ ✨"
     )
-    await update.message.reply_text(welcome_message, parse_mode="HTML")
+    await update.message.reply_text(welcome, parse_mode="MarkdownV2", disable_web_page_preview=True)
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
-    reply = await call_deepseek_stream(user_message)
-    formatted_reply = format_response_for_telegram(reply)
-    await update.message.reply_text(formatted_reply, parse_mode="HTML")
+    reply_raw = await call_deepseek_stream(user_message)
+    reply_safe = escape_markdown(reply_raw)
+    await update.message.reply_text(reply_safe, parse_mode="MarkdownV2")
 
 application.add_handler(CommandHandler("start", start))
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
@@ -115,9 +97,7 @@ async def main():
     from hypercorn.config import Config
     config = Config()
     config.bind = [f"0.0.0.0:{os.environ.get('PORT', '10000')}"]
-
-
-await serve(app, config)
+    await serve(app, config)
 
 if __name__ == "__main__":
     asyncio.run(main())
