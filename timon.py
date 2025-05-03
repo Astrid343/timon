@@ -16,7 +16,7 @@ from openai import OpenAI
 # === НАСТРОЙКИ ===
 BOT_TOKEN = "7942858083:AAG1E_upeUZayYi33OfA6y9eGSyo3-dwJc4"
 DEEPSEEK_API_KEY = "sk-61d183527a914cf093202e5cbf28e6bc"  # ← подставь свой реальный ключ сюда
-WEBHOOK_URL = f"https://your-app-name.onrender.com/webhook/{BOT_TOKEN}"
+WEBHOOK_URL = f"https://timon-sgzp.onrender.com/webhook/{BOT_TOKEN}"
 
 # === OpenAI SDK с DeepSeek API ===
 client = OpenAI(
