@@ -51,7 +51,7 @@ async def call_deepseek_stream(prompt: str) -> str:
 
 # === ХЕНДЛЕРЫ ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("essage = (
+    await update.message.reply_text(
         "👋 *Привет!*\n\n"
         "Я — Telegram-бот, подключённый к *DeepSeek AI* 🤖\n\n"
         "Просто напиши мне любой вопрос или текст, и я постараюсь ответить максимально понятно и полезно!\n\n"
@@ -60,7 +60,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• Ответы на вопросы\n"
         "• Объяснение тем\n"
         "• И многое другое!\n\n"
-        "💬 Напиши что-нибудь, чтобы начать!"")
+        "💬 Напиши что-нибудь, чтобы начать!"
+    )
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
