@@ -29,7 +29,6 @@ app = Quart(__name__)
 application = Application.builder().token(BOT_TOKEN).build()
 logging.basicConfig(level=logging.INFO)
 
-
 # === DeepSeek вызов ===
 async def call_deepseek_stream(prompt: str) -> str:
     try:
@@ -43,11 +42,11 @@ async def call_deepseek_stream(prompt: str) -> str:
                 stream=False
             )
         )
+        # Возвращаем ответ от нейронки
         return response.choices[0].message.content
     except Exception as e:
         logging.error(f"DeepSeek API error: {e}")
         return "Не удалось получить ответ от DeepSeek."
-
 
 # === ХЕНДЛЕРЫ ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -60,22 +59,19 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• Ответы на вопросы\n"
         "• Объяснение тем\n"
         "• И многое другое!\n\n"
-        "💬 Напиши что-нибудь, чтобы начать!"
+        "💬 Напиши что-нибудь, чтобы начать!",
+        parse_mode="Markdown"  # Указываем, что форматирование будет в Markdown
     )
-
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
     reply = await call_deepseek_stream(user_message)
-    await update.message.reply_text(reply)
 
-
-application.add_handler(CommandHandler("start", start))
-application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-
+    # Отправляем ответ с поддержкой Markdown или HTML
+    await update.message.reply_text(reply, parse_mode="Markdown")  # или 'HTML', если используете HTML
 
 # === ВЕБХУК ===
-@app.post(f"/webhook/{BOT_TOKEN}")
+f"/webhook/{BOT_TOKEN}"
 async def webhook():
     try:
         data = await request.get_json()
@@ -84,7 +80,6 @@ async def webhook():
     except Exception as e:
         logging.error(f"Exception in webhook: {e}")
     return "", 200
-
 
 # === MAIN ===
 async def main():
